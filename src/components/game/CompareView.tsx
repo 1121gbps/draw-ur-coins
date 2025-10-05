@@ -97,7 +97,7 @@ export default function CompareView({
           className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white"
           disabled={loading}
         >
-          {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Next Round 🔁"}
+          {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Next Round"}
         </Button>
 
         <Button
@@ -105,7 +105,7 @@ export default function CompareView({
           onClick={handleBackToLobby}
           disabled={loading}
         >
-          {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Back to Lobby 🔙"}
+          {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Back to Lobby"}
         </Button>
       </div>
     </div>
