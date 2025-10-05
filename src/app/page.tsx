@@ -5,7 +5,7 @@ import { ReactSketchCanvas } from "react-sketch-canvas"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Sparkles, Brain, Pencil, Eye, RotateCcw, Undo2, Redo2, Eraser, Paintbrush, Trash } from "lucide-react"
+import { Sparkles, Pencil, Eye, RotateCcw, Undo2, Redo2, Eraser, Paintbrush, Trash } from "lucide-react"
 import Coin from "@/components/Coin"
 import ScrollingCoins from "@/components/ScrollingCoins";
 import Image from 'next/image'
@@ -107,34 +107,42 @@ export default function CoinGame() {
         <div className="text-center mb-8 animate-fade-in">
           <h1 className="text-5xl font-bold text-fuchsia-500 mb-2 flex items-center justify-center gap-3">
             <Sparkles className="w-10 h-10 text-yellow-500 animate-pulse" />
-            draw-ur-coin
+              draw-ur-coin
           </h1>
         </div>
-        {/* Start Stage */}
-        {stage === "start" && (
-          <Card className="border-2 border-purple-200 dark:border-purple-800 shadow-2xl animate-scale-in">
-            <CardHeader className="text-center space-y-4">
-              {/* background coins */}
-              <div className="absolute inset-x-0 top-4 opacity-60">
-                <ScrollingCoins height={64} gap={20} durationSec={28} rows={2} />
-              </div>
-              <CardTitle className="text-3xl">Ready to Play?</CardTitle>
-              <CardDescription className="text-base">
-                You&apos;ll have 10 seconds to memorize a coin, then 60 seconds to draw it from memory!
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center pb-8">
-              <Button
-                onClick={startGame}
-                size="lg"
-                className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 hover:from-cyan-600 hover:via-purple-600 hover:to-pink-600 text-white font-bold text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-              >
-                <Sparkles className="mr-2 h-5 w-5" />
-                Start Game
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+    {/* Start Stage */}
+    {stage === "start" && (
+      <div className="relative">
+        {/* background scrolling coins (behind card) */}
+        <div className="absolute inset-0 opacity-40 z-0 overflow-hidden rounded-2xl">
+          <ScrollingCoins height={64} gap={20} durationSec={28} rows={2} />
+        </div>
+
+        {/* The card itself */}
+        <Card className="relative z-10 border-2 border-purple-200 dark:border-purple-800 shadow-2xl animate-scale-in overflow-hidden backdrop-blur-sm bg-black/40 dark:bg-black/60">
+          <CardHeader className="text-center space-y-4 relative">
+            <CardTitle className="text-3xl font-bold text-white">Ready to Play?</CardTitle>
+            <CardDescription className="text-base text-gray-300">
+              You&apos;ll have 10 seconds to memorize a coin, then 60 seconds to draw it from memory!
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="flex justify-center pb-8">
+            <Button
+              onClick={startGame}
+              size="lg"
+              className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500
+                        hover:from-cyan-600 hover:via-purple-600 hover:to-pink-600
+                        text-white font-bold text-lg px-8 py-6 rounded-xl shadow-lg
+                        hover:shadow-xl transition-all duration-300 hover:scale-105"
+            >
+              <Sparkles className="mr-2 h-5 w-5" />
+              Start Game
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )}
 
         {/* Memorize Stage */}
         {stage === "memorize" && coin && (
@@ -220,8 +228,10 @@ export default function CoinGame() {
                         setIsErasing(false)
                         setStrokeColor(c)
                       }}
-                      className="h-7 w-7 rounded-full ring-2 ring-offset-2 ring-offset-background"
-                      style={{ backgroundColor: c, ringColor: strokeColor === c ? "#000" : "transparent" }}
+                      className={`h-7 w-7 rounded-full ring-2 ring-offset-2 ring-offset-background ${
+                        strokeColor === c ? "ring-black" : "ring-transparent"
+                      }`}
+                      style={{ backgroundColor: c }}
                       aria-label={`Pick ${c}`}
                       title={c}
                     />
@@ -334,14 +344,23 @@ export default function CoinGame() {
             </CardContent>
           </Card>
         )}
-          <Card className="border-2 border-blue-200 dark:border-blue-800 shadow-2xl animate-scale-in mt-8">
-            <CardFooter className="text-left space-y-4">
-              Made with 🥰 by 1121gbps
-            </CardFooter>
-            <CardFooter className="text-right">
-              @ Siege Hackclub&apos;s Event 
-            </CardFooter>
-          </Card>
+        <footer className="w-full mt-10">
+          <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-stretch gap-6 px-4">
+            {/* Left Card */}
+            <Card className="flex-1 border-2 border-blue-200 dark:border-blue-800 shadow-2xl animate-scale-in bg-gradient-to-b from-blue-50/10 to-blue-900/10 dark:from-blue-950/20 dark:to-blue-900/10">
+              <CardFooter className="text-left text-sm md:text-base text-blue-950 dark:text-blue-200">
+                Made with 🥰 by <span className="font-semibold ml-1 text-purple-600 dark:text-purple-400">1121gbps</span>
+              </CardFooter>
+            </Card>
+
+            {/* Right Card */}
+            <Card className="flex-1 border-2 border-blue-200 dark:border-blue-800 shadow-2xl animate-scale-in bg-gradient-to-b from-blue-50/10 to-blue-900/10 dark:from-blue-950/20 dark:to-blue-900/10">
+              <CardFooter className="text-right text-sm md:text-base text-blue-950 dark:text-blue-200">
+                Built for <span className="font-semibold ml-1 text-purple-600 dark:text-purple-400">Siege Hackclub Event</span>
+              </CardFooter>
+            </Card>
+          </div>
+        </footer>
       </div>
     </div>
   )
