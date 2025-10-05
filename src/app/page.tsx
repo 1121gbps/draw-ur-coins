@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from "react"
 import { ReactSketchCanvas } from "react-sketch-canvas"
 import { Button } from "@/components/ui/button"
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Sparkles, Pencil, Eye, RotateCcw, Undo2, Redo2, Eraser, Paintbrush, Trash } from "lucide-react"
+import { Sparkles, Pencil, Eye, RotateCcw, Undo2, Redo2, Eraser, Paintbrush, Trash, Gamepad2  } from "lucide-react"
 import Coin from "@/components/Coin"
 import ScrollingCoins from "@/components/ScrollingCoins";
 import Image from 'next/image'
@@ -127,7 +128,7 @@ export default function CoinGame() {
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="flex justify-center pb-8">
+          <CardContent className="flex justify-center pb-8 gap-4">
             <Button
               onClick={startGame}
               size="lg"
@@ -139,6 +140,18 @@ export default function CoinGame() {
               <Sparkles className="mr-2 h-5 w-5" />
               Start Game
             </Button>
+            <Link href="/multiplayer">
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-blue-500 to-cyan-600
+                          hover:from-cyan-600 hover:to-pink-600
+                          text-white font-bold text-lg px-8 py-6 rounded-xl shadow-lg
+                          hover:shadow-xl transition-all duration-300 hover:scale-105"
+              >
+                <Gamepad2 className="ml-2 h-5 w-5" />
+                Multiplayer (beta)
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
