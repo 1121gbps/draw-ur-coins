@@ -1,0 +1,46 @@
+[
+  {
+    "name": "US Quarter",
+    "src": "/coins/us-quarter.png"
+  },
+  {
+    "name": "Canadian Silver Dollar (1967)",
+    "src": "/coins/canadian-silver-dollar.png"
+  },
+  {
+    "name": "Brazil 1 Real (1998)",
+    "src": "/coins/brazilian-real-1.png"
+  },
+  {
+    "name": "Peru 1 Sol (1870)",
+    "src": "/coins/peru-sol-1870.png"
+  },
+  {
+    "name": "Morocco 1 Dirham (2002)",
+    "src": "/coins/morocco-dirham-2002.png"
+  },
+  {
+    "name": "Swiss 1 Franc",
+    "src": "/coins/swiss-1-franc.png"
+  },
+  {
+    "name": "Russian 10 Rubles (2016 obverse)",
+    "src": "/coins/russia-10-rubles-obverse-2016.png"
+  },
+  {
+    "name": "India 10 Rupees (Grain Series)",
+    "src": "/coins/india-10-rupees-obverse.png"
+  },
+  {
+    "name": "South Korea 100 Won (2003)",
+    "src": "/coins/south-korea-100-won-2003.png"
+  },
+  {
+    "name": "Indonesia 1000 Rupiah (Obverse)",
+    "src": "/coins/indonesia-1000-rupiah-obverse.png"
+  },
+  {
+    "name": "New Zealand 1 Dollar (Obverse)",
+    "src": "/coins/new-zealand-1-dollar-obverse.png"
+  }
+]
