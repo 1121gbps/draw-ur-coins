@@ -27,7 +27,6 @@ export default function DrawView({
       const blob = await res.blob()
       const filePath = `drawings/${room.code}/${currentPlayer.id}.png`
 
-      // 1️⃣ upload to Storage (public bucket)
       const { error: uploadError } = await supabase.storage
         .from("drawings")
         .upload(filePath, blob, { upsert: true, contentType: "image/png" })
@@ -37,7 +36,6 @@ export default function DrawView({
         .from("drawings")
         .getPublicUrl(filePath)
 
-      // 2️⃣ save URL + mark done
       await supabase
         .from("players")
         .update({ drawing_url: urlData.publicUrl, done: true })
@@ -54,10 +52,8 @@ export default function DrawView({
     return () => clearTimeout(tick)
   }, [timer])
 
-  // when timer ends → auto-finish
   useEffect(() => {
     if (timer === 0) handleFinish()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timer])
 
   const handleFinish = async () => {
@@ -70,13 +66,11 @@ export default function DrawView({
         await uploadDrawing(img)
       }
 
-      // ⚠️ don't change room.phase here — host will do it when everyone is done
     } finally {
       setIsUploading(false)
     }
   }
 
-  // host watches players → move to compare
   useEffect(() => {
     if (room.host_id !== currentPlayer?.id) return
     const sub = supabase
