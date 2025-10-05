@@ -32,17 +32,14 @@ export default function MultiplayerPage() {
     }
   }, [])
 
-  // 🧱 Create a new room
   const createRoom = async () => {
     if (!name.trim()) return alert("Please enter your name first!")
     setLoading(true)
 
-    // save name to localStorage for later sessions
     localStorage.setItem("player-name", name.trim())
 
     const code = Math.random().toString(36).substring(2, 8).toUpperCase()
 
-    // 1️⃣ Create the room
     const { data: room, error: roomErr } = await supabase
       .from("rooms")
       .insert({ code, phase: "waiting" })
@@ -55,7 +52,6 @@ export default function MultiplayerPage() {
       return
     }
 
-    // 2️⃣ Insert the host player right away
     const client_id = localStorage.getItem("client-id")!
     const { data: hostPlayer, error: playerErr } = await supabase
       .from("players")
@@ -72,19 +68,15 @@ export default function MultiplayerPage() {
       return
     }
 
-    // 3️⃣ Set the host ID in the room
     await supabase.from("rooms").update({ host_id: hostPlayer.id }).eq("id", room.id)
 
-    // 4️⃣ Save locally so room-client can restore immediately
     localStorage.setItem(`player-${code}`, JSON.stringify(hostPlayer))
 
     setLoading(false)
 
-    // 5️⃣ Go to the room as host
     router.push(`/multiplayer/${room.code}?name=${encodeURIComponent(name.trim())}`)
   }
 
-  // 🪩 Join an existing room
   const joinRoom = async () => {
     if (!name.trim()) return alert("Please enter your name first!")
     if (!roomCode.trim()) return alert("Please enter a room code!")
@@ -97,7 +89,7 @@ export default function MultiplayerPage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 dark:from-blue-950 dark:to-slate-900 flex items-center justify-center p-6">
       <Card className="w-full max-w-md border-2 border-blue-300 dark:border-blue-800 shadow-2xl">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-3xl font-bold">Draw-a-Coin 🎨</CardTitle>
+          <CardTitle className="text-3xl font-bold">Draw-ur-Coins</CardTitle>
           <CardDescription>Multiplayer Lobby</CardDescription>
         </CardHeader>
 

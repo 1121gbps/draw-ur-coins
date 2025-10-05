@@ -108,7 +108,7 @@ export default function CoinGame() {
         <div className="text-center mb-8 animate-fade-in">
           <h1 className="text-5xl font-bold text-fuchsia-500 mb-2 flex items-center justify-center gap-3">
             <Sparkles className="w-10 h-10 text-yellow-500 animate-pulse" />
-              draw-ur-coin
+              draw-ur-coins
           </h1>
         </div>
     {/* Start Stage */}
