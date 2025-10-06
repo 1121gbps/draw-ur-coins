@@ -39,7 +39,7 @@ export default function DrawView({ code, room, currentPlayer }: { code: string; 
     return () => clearTimeout(timer)
   }, [timeLeft, room.phase])
 
-  // ✅ Save drawing
+  // Save drawing
   const saveDrawing = async () => {
     if (savingRef.current || isUploading || hasSaved) return
     savingRef.current = true
@@ -76,7 +76,7 @@ export default function DrawView({ code, room, currentPlayer }: { code: string; 
     }
   }
 
-  // ✅ Host watcher: detect when everyone is done → move to compare
+  // detect when everyone is done → move to compare
   useEffect(() => {
     if (!isHost || !room?.id) return
 
@@ -93,7 +93,7 @@ export default function DrawView({ code, room, currentPlayer }: { code: string; 
 
           if (players?.length && players.every((p) => p.done)) {
             await supabase.from("rooms").update({ phase: "compare" }).eq("id", room.id)
-            console.log("🎯 All players finished — phase changed to compare")
+            console.log(" All players finished — phase changed to compare")
           }
         }
       )

@@ -15,14 +15,14 @@ type Player = {
 
 type Room = {
   id: string
-  host_id: string
+  host_id: string | null
 }
 
 interface LobbyViewProps {
   code: string
-  room: Room
+  room: Room & { host_id: string | null }
   players: Player[]
-  currentPlayer: Player
+  currentPlayer: Player | null
   isHost: boolean
   joining: boolean
 }

@@ -13,6 +13,7 @@ export type Player = {
   id: string
   room_id: string
   client_id: string | null
+  host_id: string | null
   name: string
   drawing_url?: string | null
   created_at?: string
