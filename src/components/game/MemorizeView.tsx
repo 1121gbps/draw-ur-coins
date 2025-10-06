@@ -25,7 +25,6 @@ export default function MemorizeView({
     room.coin ? JSON.parse(room.coin) : null
   )
 
-  // 🪙 If no coin yet, the host fetches a random one and saves it to Supabase
   useEffect(() => {
     const assignCoin = async () => {
       if (!isHost || coin) return // Only host picks new coin
@@ -49,20 +48,24 @@ export default function MemorizeView({
     assignCoin()
   }, [isHost, coin, room.id])
 
-  useEffect(() => {
-    if (!isHost || !coin) return
-    if (timer <= 0) {
-      supabase
-        .from("rooms")
-        .update({ phase: "draw" })
-        .eq("id", room.id)
-        .then(() => console.log("Phase → draw"))
-      return
-    }
+useEffect(() => {
+  if (!isHost || !room?.id) return
+  if (timer <= 0) {
+    console.log("🧠 Host advancing phase → draw")
+    supabase
+      .from("rooms")
+      .update({ phase: "draw" })
+      .eq("id", room.id)
+      .then(({ error }) => {
+        if (error) console.error("Failed to change phase", error)
+      })
+    return
+  }
 
-    const tick = setTimeout(() => setTimer((t) => t - 1), 1000)
-    return () => clearTimeout(tick)
-  }, [timer, isHost, room.id, coin])
+  const interval = setTimeout(() => setTimer((t) => t - 1), 1000)
+  return () => clearTimeout(interval)
+}, [timer, isHost, room.id])
+
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-6 bg-gradient-to-b from-yellow-50 to-amber-100 dark:from-yellow-900 dark:to-amber-950">

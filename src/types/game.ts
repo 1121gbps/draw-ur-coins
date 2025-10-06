@@ -9,6 +9,7 @@ export type Room = {
 }
 
 export type Player = {
+  done: unknown
   id: string
   room_id: string
   client_id: string | null

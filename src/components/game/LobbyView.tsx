@@ -1,111 +1,68 @@
 "use client"
 
-import { useState } from "react"
-import { supabase } from "@/lib/supabaseClient"
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from "@/components/ui/dialog"
-import { LogOut, Loader2 } from "lucide-react"
-import type { Room, Player } from "@/types/game"
+import { Card, CardHeader, CardContent, CardFooter, CardTitle } from "@/components/ui/card"
+import { supabase } from "@/lib/supabaseClient"
+import { useState } from "react"
+import { toast } from "sonner"
+import { Sparkles } from "lucide-react"
 
-export default function LobbyView({
-  code,
-  room,
-  players,
-  currentPlayer,
-  isHost,
-  joining,
-}: {
-  code: string
-  room: Room
-  players: Player[]
-  currentPlayer: Player | null
-  isHost: boolean
-  joining: boolean
-}) {
-  const [leaveOpen, setLeaveOpen] = useState(false)
-  const count = players.length
 
-  const handleLeave = async () => {
-    setLeaveOpen(false)
-    if (!room || !currentPlayer) {
-      localStorage.removeItem(`player-${code}`)
-      location.href = "/multiplayer"
-      return
-    }
-    try {
-      if (isHost) {
-        await supabase.from("players").delete().eq("room_id", room.id)
-        await supabase.from("rooms").delete().eq("id", room.id)
-      } else {
-        await supabase.from("players").delete().eq("id", currentPlayer.id)
+export default function LobbyView({ code, room, players, currentPlayer, isHost, joining }) {
+  const [starting, setStarting] = useState(false)
+
+  const startGame = async () => {
+    if (starting) return
+    setStarting(true)
+    toast.info("Get rekt... Starting in 3 seconds!")
+
+    let count = 3
+    const overlay = document.createElement("div")
+    overlay.className =
+      "fixed inset-0 flex items-center justify-center text-8xl bg-black/80 text-white font-bold z-50 transition-all"
+    document.body.appendChild(overlay)
+
+    const interval = setInterval(async () => {
+      overlay.textContent = count.toString()
+      if (count <= 0) {
+        clearInterval(interval)
+        overlay.remove()
+        toast.success("Game started!")
+        await supabase.from("rooms").update({ phase: "memorize" }).eq("id", room.id)
       }
-    } finally {
-      localStorage.removeItem(`player-${code}`)
-      location.href = "/multiplayer"
-    }
+      count--
+    }, 1000)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-blue-100 dark:from-blue-950 dark:to-slate-900 p-6">
-      <Card className="w-full max-w-lg border-2 border-blue-300 dark:border-blue-800 shadow-2xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">
-            Room Code: <span className="font-mono text-purple-600">{code}</span>
-          </CardTitle>
-          <p className="text-muted-foreground">Players: {count}</p>
+    <div className="relative min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 dark:from-blue-950 dark:to-slate-900 flex items-center justify-center overflow-hidden">
+      <Card className="w-full max-w-md text-center shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-4xl font-bold mb-2 flex items-center justify-center gap-3"><Sparkles className="w-10 h-10 text-yellow-500 animate-pulse" />draw-ur-coins</CardTitle>
+          <CardTitle className="text-2xl font-medium">Room Code: {code}</CardTitle>
         </CardHeader>
-
-        <CardContent className="space-y-6 text-center">
-          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+        <CardContent>
+          <p className="mb-2 font-medium">Players</p>
+          <ul className="space-y-1 text-gray-300">
             {players.map((p) => (
-              <li key={p.client_id ?? p.id} className={p.id === room.host_id ? "font-bold text-yellow-600" : ""}>
+              <li key={p.id} className={p.id === room.host_id ? "font-bold text-purple-600" : ""}>
                 {p.name} {p.id === room.host_id && "(Host)"}
               </li>
             ))}
           </ul>
-
+        </CardContent>
+        <CardFooter className="flex justify-center">
           {isHost ? (
-            <Button
-              onClick={async () => {
-                await supabase.from("rooms").update({ phase: "memorize" }).eq("id", room.id)
-              }}
-              className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500"
-              disabled={joining || !currentPlayer}  // allow host to start even if count==1
-            >
-              {joining ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Start Game"}
+            <Button onClick={startGame} disabled={starting} className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white">
+              Start Game
             </Button>
           ) : (
-            <p className="text-sm italic text-gray-500">Waiting for host to start...</p>
+            <p className="text-gray-500 text-sm italic animate-pulse">Waiting for host to start...</p>
           )}
 
-          <Button
-            variant="destructive"
-            className="flex mx-auto gap-2"
-            onClick={() => setLeaveOpen(true)}
-            disabled={!currentPlayer}
-          >
-            <LogOut className="w-4 h-4" /> Leave Room
-          </Button>
-        </CardContent>
+        
+        </CardFooter>
       </Card>
-
-      <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Leave Room?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            {isHost
-              ? "You're the host. Leaving will delete the room for everyone."
-              : "Are you sure you want to leave this room?"}
-          </p>
-          <DialogFooter className="mt-4 flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setLeaveOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleLeave}>Leave</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

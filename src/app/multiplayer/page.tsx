@@ -12,6 +12,8 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card"
+import Link from "next/link"
+import { Sparkles } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function MultiplayerPage() {
@@ -86,11 +88,12 @@ export default function MultiplayerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 dark:from-blue-950 dark:to-slate-900 flex items-center justify-center p-6">
+    <div className="relative min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 dark:from-blue-950 dark:to-slate-900 flex items-center justify-center overflow-hidden">
       <Card className="w-full max-w-md border-2 border-blue-300 dark:border-blue-800 shadow-2xl">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-3xl font-bold">Draw-ur-Coins</CardTitle>
+          <CardTitle className="text-4xl font-bold mb-2 flex items-center justify-center gap-3"><Sparkles className="w-10 h-10 text-yellow-500 animate-pulse" />draw-ur-coins</CardTitle>
           <CardDescription>Multiplayer Lobby</CardDescription>
+          <Link href="/" className="text-sm text-muted-foreground">No friends? Play solo</Link>
         </CardHeader>
 
         <CardContent className="space-y-4">

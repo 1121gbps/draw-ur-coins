@@ -96,7 +96,7 @@ export default function CompareView({
       {/* Player drawings */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {players.map((p) => (
-          <div key={p.id} className="text-center space-y-2">
+          <div key={p.id} className="text-center space-y-2 justify-center items-center">
             <div className="bg-white/70 dark:bg-black/30 p-3 rounded-lg shadow-lg">
               {p.drawing_url ? (
                 <Image

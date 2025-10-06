@@ -102,7 +102,7 @@ export default function CoinGame() {
   const swatches = ["#000000", "#ffffff", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899"]
 
   return (
-  <div className="relative min-h-screen bg-gradient-to-b from-sky-100 via-blue-100 to-blue-200 dark:from-sky-900 dark:via-blue-950 dark:to-blue-950 flex items-center justify-center overflow-hidden">
+  <div className="relative min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 dark:from-blue-950 dark:to-slate-900 flex items-center justify-center overflow-hidden">
       <div className="w-full max-w-4xl">
         {/* Header */}
         <div className="text-center mb-8 animate-fade-in">
@@ -120,7 +120,7 @@ export default function CoinGame() {
         </div>
 
         {/* The card itself */}
-        <Card className="relative z-10 border-2 border-purple-200 dark:border-purple-800 shadow-2xl animate-scale-in overflow-hidden backdrop-blur-sm bg-black/40 dark:bg-black/60">
+        <Card className="relative z-10 border-2 border-purple-200 dark:border-purple-800 shadow-2xl animate-scale-in overflow-hidden backdrop-blur-sm bg-black/40 dark:bg-black/60 justify-center">
           <CardHeader className="text-center space-y-4 relative">
             <CardTitle className="text-3xl font-bold text-white">Ready to Play?</CardTitle>
             <CardDescription className="text-base text-gray-300">
@@ -149,7 +149,7 @@ export default function CoinGame() {
                           hover:shadow-xl transition-all duration-300 hover:scale-105"
               >
                 <Gamepad2 className="ml-2 h-5 w-5" />
-                Multiplayer (beta)
+                Multiplayer
               </Button>
             </Link>
           </CardContent>
@@ -353,6 +353,18 @@ export default function CoinGame() {
                   <RotateCcw className="mr-2 h-5 w-5" />
                   Play Again
                 </Button>
+                  <Link href="/multiplayer">
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-blue-500 to-cyan-600
+                              hover:from-cyan-600 hover:to-pink-600
+                              text-white font-bold text-lg px-8 py-6 rounded-xl shadow-lg
+                              hover:shadow-xl transition-all duration-300 hover:scale-105"
+                  >
+                    <Gamepad2 className="ml-2 h-5 w-5" />
+                    Go Multiplayer
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
@@ -362,7 +374,7 @@ export default function CoinGame() {
             {/* Left Card */}
             <Card className="flex-1 border-2 border-blue-200 dark:border-blue-800 shadow-2xl animate-scale-in bg-gradient-to-b from-blue-50/10 to-blue-900/10 dark:from-blue-950/20 dark:to-blue-900/10">
               <CardFooter className="text-left text-sm md:text-base text-blue-950 dark:text-blue-200">
-                Made with 🥰 by <span className="font-semibold ml-1 text-purple-600 dark:text-purple-400">1121gbps</span>
+                Made with 🥰 by <span className="font-semibold ml-1 text-purple-600 dark:text-purple-400">1121gbps (AbnormalJawa)</span>
               </CardFooter>
             </Card>
 
