@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { ReactSketchCanvas } from "react-sketch-canvas"
+import { ReactSketchCanvas, ReactSketchCanvasRef } from "react-sketch-canvas"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { supabase } from "@/lib/supabaseClient"
@@ -27,9 +27,9 @@ export default function DrawView({
 }: {
   code: string
   room: AnyRoom
-  currentPlayer: AnyPlayer
+  currentPlayer: AnyPlayer | null
 }) {
-  const canvasRef = useRef<ReactSketchCanvas | null>(null)
+  const canvasRef = useRef<ReactSketchCanvasRef | null>(null)
   const [timeLeft, setTimeLeft] = useState(60)
   const [isErasing, setIsErasing] = useState(false)
   const [strokeColor, setStrokeColor] = useState("#000000")
@@ -127,6 +127,7 @@ export default function DrawView({
       const dataUrl = await canvasRef.current?.exportImage("png")
       if (!dataUrl) throw new Error("Canvas export failed")
       const blob = await (await fetch(dataUrl)).blob()
+      if (!currentPlayer) throw new Error("No current player")
       const filePath = `drawings/${room.code}/${currentPlayer.id}-${Date.now()}.png`
 
       // Upload to private bucket (or public if you configured it so)
