@@ -5,19 +5,8 @@ import { ReactSketchCanvas } from "react-sketch-canvas"
 import { supabase } from "@/lib/supabaseClient"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import {
-  Paintbrush,
-  Eraser,
-  Undo2,
-  Redo2,
-  Trash,
-  Pencil,
-  Palette,
-} from "lucide-react"
+import { Paintbrush, Eraser, Undo2, Redo2, Trash, Pencil } from "lucide-react"
 import type { Room, Player } from "@/types/game"
-
-// ⏱️ round length (seconds)
-const ROUND_SECONDS = 60
 
 export default function DrawView({
   code,
@@ -29,18 +18,13 @@ export default function DrawView({
   currentPlayer: Player | null
 }) {
   const canvasRef = useRef<any>(null)
-
-  // --- UI state ---
-  const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS)
+  const [timeLeft, setTimeLeft] = useState(60)
   const [isUploading, setIsUploading] = useState(false)
-  const [hasSaved, setHasSaved] = useState(false)
-
   const [isErasing, setIsErasing] = useState(false)
   const [strokeColor, setStrokeColor] = useState("#8b5cf6")
   const [customColor, setCustomColor] = useState("#000000")
   const [strokeWidth, setStrokeWidth] = useState(3)
-
-  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null)
+  const [hasSaved, setHasSaved] = useState(false)
 
   const swatches = [
     "#000000",
@@ -52,105 +36,99 @@ export default function DrawView({
     "#facc15",
   ]
 
-  // 👤 make sure anonymous session exists (client-side works both local/Vercel)
+  // Ensure guest signed in
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) await supabase.auth.signInAnonymously()
-    })
+    const ensureGuest = async () => {
+      const { data } = await supabase.auth.getUser()
+      if (!data.user) {
+        await supabase.auth.signInAnonymously()
+        console.log("✅ Guest signed in anonymously")
+      }
+    }
+    ensureGuest()
   }, [])
 
-  // ⏳ pure countdown (keeps the old, working lifecycle)
+  // Countdown
   useEffect(() => {
-    if (room.phase !== "draw") return
-
+    if (hasSaved) return
     if (timeLeft <= 0) {
-      // guard to avoid double-finish
-      if (!hasSaved) void handleFinish()
+      handleFinish()
       return
     }
+    const timer = setTimeout(() => setTimeLeft((t) => t - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [timeLeft, hasSaved])
 
-    const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, room.phase, hasSaved])
-
-  // 🧠 host watcher (unchanged behavior):
-  // whenever any player updates, host checks if all done → moves phase to "compare"
-  useEffect(() => {
-    if (!currentPlayer || room.host_id !== currentPlayer.id) return
-
-    const ch = supabase
-      .channel(`players-done-${room.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "players",
-          filter: `room_id=eq.${room.id}`,
-        },
-        async () => {
-          const { data } = await supabase
-            .from("players")
-            .select("done")
-            .eq("room_id", room.id)
-
-          if (data && data.length > 0 && data.every((p) => p.done)) {
-            await supabase.from("rooms").update({ phase: "compare" }).eq("id", room.id)
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(ch)
-    }
-  }, [room.id, room.host_id, currentPlayer?.id])
-
-  // 🖼️ upload & mark done (keeps old logic; just wrapped up neatly)
-  const uploadDrawing = async (dataUrl: string) => {
-    if (!currentPlayer) return
-
-    const res = await fetch(dataUrl)
-    const blob = await res.blob()
-    const path = `drawings/${room.code}/${currentPlayer.id}.png`
-
-    // Public bucket path; if your bucket is private switch to createSignedUrl
-    const { error: uploadErr } = await supabase.storage
-      .from("drawings")
-      .upload(path, blob, { upsert: true, contentType: "image/png" })
-    if (uploadErr) throw uploadErr
-
-    const { data: urlData } = supabase.storage.from("drawings").getPublicUrl(path)
-
-    await supabase
-      .from("players")
-      .update({ drawing_url: urlData.publicUrl, done: true })
-      .eq("id", currentPlayer.id)
-  }
-
+  // Save image
   const handleFinish = async () => {
-    if (isUploading || hasSaved) return
+    if (isUploading || hasSaved || !currentPlayer) return
     setIsUploading(true)
+
     try {
-      if (canvasRef.current) {
-        const img = await canvasRef.current.exportImage("png")
-        await uploadDrawing(img)
-        setHasSaved(true)
+      const img = await canvasRef.current.exportImage("png")
+      const blob = await (await fetch(img)).blob()
+      const path = `drawings/${room.code}/${currentPlayer.id}.png`
+
+      const { error: uploadErr } = await supabase.storage
+        .from("drawings")
+        .upload(path, blob, { upsert: true, contentType: "image/png" })
+      if (uploadErr) throw uploadErr
+
+      const { data: urlData } = supabase.storage
+        .from("drawings")
+        .getPublicUrl(path)
+
+      await supabase
+        .from("players")
+        .update({ drawing_url: urlData.publicUrl, done: true })
+        .eq("id", currentPlayer.id)
+
+      // Check if everyone done → host switches to compare
+      const { data: allPlayers } = await supabase
+        .from("players")
+        .select("id, done")
+        .eq("room_id", room.id)
+      const everyoneDone = allPlayers?.every((p) => p.done)
+
+      if (everyoneDone && currentPlayer.id === room.host_id) {
+        await supabase.from("rooms").update({ phase: "compare" }).eq("id", room.id)
+        console.log("✅ All players done → phase changed to compare")
       }
+
+      setHasSaved(true)
     } catch (err) {
-      console.error("Upload failed:", err)
+      console.error("❌ Failed to save drawing:", err)
     } finally {
       setIsUploading(false)
     }
   }
 
-  const getProgress = () => ((ROUND_SECONDS - timeLeft) / ROUND_SECONDS) * 100
+  // Listen for host phase change → auto refresh guests
+  useEffect(() => {
+    if (!room?.id) return
+    const ch = supabase
+      .channel(`room-${room.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${room.id}` },
+        (payload) => {
+          if (payload.new?.phase === "compare") {
+            console.log("🟢 Compare phase detected, refreshing...")
+            window.location.reload()
+          }
+        }
+      )
+      .subscribe()
+    return () => {
+      supabase.removeChannel(ch)
+    }
+  }, [room?.id])
+
+  const getProgress = () => ((60 - timeLeft) / 60) * 100
   const effectiveColor = isErasing ? "#ffffff" : strokeColor
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-purple-50 to-pink-100 dark:from-purple-950 dark:to-pink-950 p-6 space-y-6">
-      {/* Title */}
       <div className="text-center">
         <h2 className="text-2xl md:text-4xl font-bold text-purple-600 dark:text-purple-400 flex items-center justify-center gap-2">
           <Pencil className="w-8 h-8" /> Draw From Memory!
@@ -160,16 +138,8 @@ export default function DrawView({
         </p>
       </div>
 
-      {/* Canvas + cursor ring */}
-      <div
-        className="relative border-4 border-dashed border-purple-300 dark:border-purple-700 rounded-xl overflow-hidden shadow-lg"
-        style={{ width: 400, height: 400 }}
-        onMouseMove={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect()
-          setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
-        }}
-        onMouseLeave={() => setCursorPos(null)}
-      >
+      {/* Canvas */}
+      <div className="border-4 border-dashed border-purple-300 dark:border-purple-700 rounded-xl overflow-hidden shadow-lg">
         <ReactSketchCanvas
           ref={canvasRef}
           style={{ border: "none" }}
@@ -179,31 +149,16 @@ export default function DrawView({
           strokeColor={effectiveColor}
           canvasColor="#ffffff"
         />
-        {cursorPos && (
-          <div
-            className="absolute rounded-full pointer-events-none hidden md:block transition-all duration-75"
-            style={{
-              left: cursorPos.x - strokeWidth / 2,
-              top: cursorPos.y - strokeWidth / 2,
-              width: strokeWidth,
-              height: strokeWidth,
-              backgroundColor: isErasing ? "rgba(255,255,255,0.75)" : `${strokeColor}cc`,
-              border: "1px solid rgba(0,0,0,0.2)",
-            }}
-          />
-        )}
       </div>
 
-      {/* Floating Toolbar */}
+      {/* Toolbar */}
       <div className="bg-white/80 dark:bg-black/40 backdrop-blur-md rounded-2xl shadow-xl p-4 flex flex-wrap justify-center items-center gap-3 w-full max-w-xl border border-purple-200 dark:border-purple-800">
-        {/* Brush / Eraser */}
         <div className="flex gap-2">
           <Button
             variant={isErasing ? "outline" : "default"}
             size="icon"
             onClick={() => setIsErasing(false)}
-            className={!isErasing ? "bg-purple-600 hover:bg-purple-700" : ""}
-            title="Brush"
+            className={!isErasing ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}
           >
             <Paintbrush className="w-4 h-4" />
           </Button>
@@ -211,15 +166,18 @@ export default function DrawView({
             variant={isErasing ? "default" : "outline"}
             size="icon"
             onClick={() => setIsErasing(true)}
-            className={isErasing ? "bg-rose-700 hover:bg-rose-700 dark:hover:bg-rose-400 text-white" : ""}
-            title="Eraser"
+            className={
+              isErasing
+                ? "bg-rose-700 hover:bg-rose-800 text-white"
+                : ""
+            }
           >
             <Eraser className="w-4 h-4" />
           </Button>
         </div>
 
-        {/* Colors */}
-        <div className="flex items-center gap-2 rounded-md bg-card p-1">
+        {/* Color palette */}
+        <div className="flex items-center gap-2 bg-card p-1 rounded-md">
           {swatches.map((c) => (
             <button
               key={c}
@@ -231,26 +189,18 @@ export default function DrawView({
                 strokeColor === c ? "ring-black" : "ring-transparent"
               }`}
               style={{ backgroundColor: c }}
-              aria-label={`Pick ${c}`}
-              title={c}
             />
           ))}
-
-          {/* Color Picker */}
-          <label className="flex items-center gap-1 cursor-pointer">
-            <Palette className="w-4 h-4 text-purple-500" />
-            <input
-              type="color"
-              value={customColor}
-              onChange={(e) => {
-                setCustomColor(e.target.value)
-                setIsErasing(false)
-                setStrokeColor(e.target.value)
-              }}
-              className="w-7 h-7 border-none cursor-pointer bg-transparent"
-              title="Custom color"
-            />
-          </label>
+          <input
+            type="color"
+            value={customColor}
+            onChange={(e) => {
+              setCustomColor(e.target.value)
+              setStrokeColor(e.target.value)
+              setIsErasing(false)
+            }}
+            className="h-7 w-10 rounded-full cursor-pointer border border-muted"
+          />
         </div>
 
         {/* Width */}
@@ -273,7 +223,7 @@ export default function DrawView({
         </div>
 
         {/* Undo / Redo / Clear */}
-        <div className="flex justify-left gap-2">
+        <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={() => canvasRef.current?.undo()}>
             <Undo2 className="w-4 h-4" />
           </Button>
@@ -286,8 +236,8 @@ export default function DrawView({
         </div>
       </div>
 
-      {/* Timer + Finish Early */}
-      <div className="w-full max-w-md space-y-3">
+      {/* Timer */}
+      <div className="w-full max-w-md">
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium">Time Remaining</span>
           <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
@@ -295,16 +245,17 @@ export default function DrawView({
           </span>
         </div>
         <Progress value={getProgress()} className="h-3 bg-purple-100 dark:bg-purple-900" />
+      </div>
 
-        <div className="pt-2">
-          <Button
-            onClick={handleFinish}
-            disabled={isUploading || hasSaved}
-            className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg shadow-md"
-          >
-            {isUploading ? "Uploading..." : hasSaved ? "Done!" : "Finish Early"}
-          </Button>
-        </div>
+      {/* Finish */}
+      <div className="mt-6">
+        <Button
+          onClick={handleFinish}
+          disabled={isUploading || hasSaved}
+          className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg shadow-md"
+        >
+          {isUploading ? "Uploading..." : hasSaved ? "Done!" : "Finish Early"}
+        </Button>
       </div>
     </div>
   )
