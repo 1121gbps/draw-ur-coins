@@ -24,49 +24,25 @@ export default function DrawView({
   const [strokeColor, setStrokeColor] = useState("#8b5cf6")
   const [customColor, setCustomColor] = useState("#000000")
   const [strokeWidth, setStrokeWidth] = useState(3)
-  const [hasSaved, setHasSaved] = useState(false)
 
-  const swatches = [
-    "#000000",
-    "#ffffff",
-    "#8b5cf6",
-    "#ef4444",
-    "#22c55e",
-    "#3b82f6",
-    "#facc15",
-  ]
+  const swatches = ["#000000", "#ffffff", "#8b5cf6", "#ef4444", "#22c55e", "#3b82f6", "#facc15"]
 
-  // Ensure guest signed in
+  // Countdown timer
   useEffect(() => {
-    const ensureGuest = async () => {
-      const { data } = await supabase.auth.getUser()
-      if (!data.user) {
-        await supabase.auth.signInAnonymously()
-        console.log("✅ Guest signed in anonymously")
-      }
-    }
-    ensureGuest()
-  }, [])
-
-  // Countdown
-  useEffect(() => {
-    if (hasSaved) return
-    if (timeLeft <= 0) {
-      handleFinish()
-      return
-    }
+    if (timeLeft <= 0) return
     const timer = setTimeout(() => setTimeLeft((t) => t - 1), 1000)
     return () => clearTimeout(timer)
-  }, [timeLeft, hasSaved])
+  }, [timeLeft])
 
-  // Save image
-  const handleFinish = async () => {
-    if (isUploading || hasSaved || !currentPlayer) return
-    setIsUploading(true)
+  useEffect(() => {
+    if (timeLeft === 0) handleFinish()
+  }, [timeLeft])
 
+  const uploadDrawing = async (dataUrl: string) => {
+    if (!currentPlayer) return
     try {
-      const img = await canvasRef.current.exportImage("png")
-      const blob = await (await fetch(img)).blob()
+      const res = await fetch(dataUrl)
+      const blob = await res.blob()
       const path = `drawings/${room.code}/${currentPlayer.id}.png`
 
       const { error: uploadErr } = await supabase.storage
@@ -74,55 +50,60 @@ export default function DrawView({
         .upload(path, blob, { upsert: true, contentType: "image/png" })
       if (uploadErr) throw uploadErr
 
-      const { data: urlData } = supabase.storage
-        .from("drawings")
-        .getPublicUrl(path)
+      const { data: urlData } = supabase.storage.from("drawings").getPublicUrl(path)
 
       await supabase
         .from("players")
         .update({ drawing_url: urlData.publicUrl, done: true })
         .eq("id", currentPlayer.id)
-
-      // Check if everyone done → host switches to compare
-      const { data: allPlayers } = await supabase
-        .from("players")
-        .select("id, done")
-        .eq("room_id", room.id)
-      const everyoneDone = allPlayers?.every((p) => p.done)
-
-      if (everyoneDone && currentPlayer.id === room.host_id) {
-        await supabase.from("rooms").update({ phase: "compare" }).eq("id", room.id)
-        console.log("✅ All players done → phase changed to compare")
-      }
-
-      setHasSaved(true)
     } catch (err) {
-      console.error("❌ Failed to save drawing:", err)
+      console.error("Upload failed:", err)
+    }
+  }
+
+  const handleFinish = async () => {
+    if (isUploading) return
+    setIsUploading(true)
+    try {
+      if (canvasRef.current) {
+        const img = await canvasRef.current.exportImage("png")
+        await uploadDrawing(img)
+      }
     } finally {
       setIsUploading(false)
     }
   }
 
-  // Listen for host phase change → auto refresh guests
+  // Host auto-advances to compare when all are done
   useEffect(() => {
-    if (!room?.id) return
-    const ch = supabase
-      .channel(`room-${room.id}`)
+    if (room.host_id !== currentPlayer?.id) return
+
+    const channel = supabase
+      .channel(`players-done-${room.id}`)
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${room.id}` },
-        (payload) => {
-          if (payload.new?.phase === "compare") {
-            console.log("🟢 Compare phase detected, refreshing...")
-            window.location.reload()
+        {
+          event: "*",
+          schema: "public",
+          table: "players",
+          filter: `room_id=eq.${room.id}`,
+        },
+        async () => {
+          const { data } = await supabase
+            .from("players")
+            .select("done")
+            .eq("room_id", room.id)
+          if (data && data.every((p) => p.done)) {
+            await supabase.from("rooms").update({ phase: "compare" }).eq("id", room.id)
           }
         }
       )
       .subscribe()
+
     return () => {
-      supabase.removeChannel(ch)
+      supabase.removeChannel(channel)
     }
-  }, [room?.id])
+  }, [room.id, room.host_id, currentPlayer?.id])
 
   const getProgress = () => ((60 - timeLeft) / 60) * 100
   const effectiveColor = isErasing ? "#ffffff" : strokeColor
@@ -133,9 +114,7 @@ export default function DrawView({
         <h2 className="text-2xl md:text-4xl font-bold text-purple-600 dark:text-purple-400 flex items-center justify-center gap-2">
           <Pencil className="w-8 h-8" /> Draw From Memory!
         </h2>
-        <p className="text-lg text-muted-foreground">
-          Recreate the coin as best as you can
-        </p>
+        <p className="text-lg text-muted-foreground">Recreate the coin as best as you can</p>
       </div>
 
       {/* Canvas */}
@@ -153,6 +132,7 @@ export default function DrawView({
 
       {/* Toolbar */}
       <div className="bg-white/80 dark:bg-black/40 backdrop-blur-md rounded-2xl shadow-xl p-4 flex flex-wrap justify-center items-center gap-3 w-full max-w-xl border border-purple-200 dark:border-purple-800">
+        {/* Brush / Eraser */}
         <div className="flex gap-2">
           <Button
             variant={isErasing ? "outline" : "default"}
@@ -166,18 +146,14 @@ export default function DrawView({
             variant={isErasing ? "default" : "outline"}
             size="icon"
             onClick={() => setIsErasing(true)}
-            className={
-              isErasing
-                ? "bg-rose-700 hover:bg-rose-800 text-white"
-                : ""
-            }
+            className={isErasing ? "bg-rose-700 hover:bg-rose-700 text-white" : ""}
           >
             <Eraser className="w-4 h-4" />
           </Button>
         </div>
 
-        {/* Color palette */}
-        <div className="flex items-center gap-2 bg-card p-1 rounded-md">
+        {/* Colors */}
+        <div className="flex items-center gap-2 rounded-md bg-card p-1">
           {swatches.map((c) => (
             <button
               key={c}
@@ -196,10 +172,11 @@ export default function DrawView({
             value={customColor}
             onChange={(e) => {
               setCustomColor(e.target.value)
-              setStrokeColor(e.target.value)
               setIsErasing(false)
+              setStrokeColor(e.target.value)
             }}
             className="h-7 w-10 rounded-full cursor-pointer border border-muted"
+            title="Custom color"
           />
         </div>
 
@@ -240,21 +217,19 @@ export default function DrawView({
       <div className="w-full max-w-md">
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium">Time Remaining</span>
-          <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-            {timeLeft}s
-          </span>
+          <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">{timeLeft}s</span>
         </div>
         <Progress value={getProgress()} className="h-3 bg-purple-100 dark:bg-purple-900" />
       </div>
 
-      {/* Finish */}
+      {/* Submit */}
       <div className="mt-6">
         <Button
           onClick={handleFinish}
-          disabled={isUploading || hasSaved}
-          className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg shadow-md"
+          disabled={isUploading}
+          className="bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg"
         >
-          {isUploading ? "Uploading..." : hasSaved ? "Done!" : "Finish Early"}
+          {isUploading ? "Uploading..." : "Finish Early"}
         </Button>
       </div>
     </div>
