@@ -8,7 +8,26 @@ import { toast } from "sonner"
 import { Sparkles } from "lucide-react"
 
 
-export default function LobbyView({ code, room, players, currentPlayer, isHost, joining }) {
+type Player = {
+  id: string
+  name: string
+}
+
+type Room = {
+  id: string
+  host_id: string
+}
+
+interface LobbyViewProps {
+  code: string
+  room: Room
+  players: Player[]
+  currentPlayer: Player
+  isHost: boolean
+  joining: boolean
+}
+
+export default function LobbyView({ code, room, players, currentPlayer, isHost, joining }: LobbyViewProps) {
   const [starting, setStarting] = useState(false)
 
   const startGame = async () => {
